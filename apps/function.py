@@ -23,7 +23,6 @@ def get_file():
     [writer.writerow(line.decode('utf-8').split(',')) for line in response.iter_lines()]
 
 def prep_table():
-
   TABLES = {}
   TABLES['titanic_stats'] = (
       "CREATE TABLE `titanic_stats` ("
@@ -54,6 +53,14 @@ def prep_table():
         cnx.close()
         print("OK")  
 
+def survival_rate_by_class_and_gender(dataframe, pclass, gender, survived):
+    #number of survivors for each class / total number of survivors
+    by_factor = dataframe[(dataframe["Pclass"] == pclass) & (dataframe["Survived"] == 1) & (dataframe["Sex"] == gender)]
+    count_by_factor = by_factor.count()
+    survival_rate = count_by_factor / survived * 100
+    
+    return survival_rate
+
 def main():
     
     get_file()
@@ -62,45 +69,23 @@ def main():
     spark, sc, sqlc = init_spark()
     data = spark.read.load("/opt/spark-data/titanic.csv", format = "csv", sep=",", header="true")
     
-    survived_children = data[(data["Survived"] == 1) & (data["Age"] < 18)]
-    survived_children_percent = survived_children.count()/data.count() * 100
+    total = data.count()
+    survived = data[data["Survived"] == 1].count()
+    
+    survived_children_percent = data[(data["Survived"] == 1) & (data["Age"] < 18)].count()/total * 100
+    survived_adults_percent = data[(data["Survived"] == 1) & (data["Age"].between(18, 40))].count()/total * 100
+    survived_male_adults_percent = data[(data["Survived"] == 1) & (data["Age"].between(18, 40)) & (data["Sex"] == 'male')].count()/total * 100
+    survived_female_adults_percent = data[(data["Survived"] == 1) & (data["Age"].between(18, 40)) & (data["Sex"] == 'female')].count()/total * 100
+    survived_elderly_percent = data[(data["Survived"] == 1) & (data["Age"] > 40)].count()/total * 100
+    survived_male_elderly_percent = data[(data["Survived"] == 1) & (data["Age"] > 40) & (data["Sex"] == 'male')].count()/total * 100
+    survived_female_elderly_percent = data[(data["Survived"] == 1) & (data["Age"] > 40) & (data["Sex"] == 'female')].count()/total * 100
 
-    survived_adults = data[(data["Survived"] == 1) & (data["Age"].between(18, 40))]
-    survived_adults_percent = survived_adults.count()/data.count() * 100
-
-    survived_male_adults = data[(data["Survived"] == 1) & (data["Age"].between(18, 40)) & (data["Sex"] == 'male')]
-    survived_male_adults_percent = survived_male_adults.count()/data.count() * 100
-
-    survived_female_adults = data[(data["Survived"] == 1) & (data["Age"].between(18, 40)) & (data["Sex"] == 'female')]
-    survived_female_adults_percent = survived_female_adults.count()/data.count() * 100
-
-    survived_elderly = data[(data["Survived"] == 1) & (data["Age"] > 40)]
-    survived_elderly_percent = survived_elderly.count()/data.count() * 100
-
-    survived_male_elderly = data[(data["Survived"] == 1) & (data["Age"] > 40) & (data["Sex"] == 'male')]
-    survived_male_elderly_percent = survived_male_elderly.count()/data.count() * 100
-
-    survived_female_elderly = data[(data["Survived"] == 1) & (data["Age"] > 40) & (data["Sex"] == 'female')]
-    survived_female_elderly_percent = survived_female_elderly.count()/data.count() * 100
-
-    #Divide the number of survivors for each class by [total number of survivors]
-    survived_male_class_one = data[(data["Pclass"] == 1) & (data["Survived"] == 1) & (data["Sex"] == 'male')]
-    survived_male_class_one_percent = survived_male_class_one.count()/data.count() * 100
-
-    survived_male_class_two = data[(data["Pclass"] == 2) & (data["Survived"] == 1) & (data["Sex"] == 'male')]
-    survived_male_class_two_percent = survived_male_class_two.count()/data.count() * 100
-  
-    survived_male_class_three = data[(data["Pclass"] == 3) & (data["Survived"] == 1) & (data["Sex"] == 'male')]
-    survived_male_class_three_percent = survived_male_class_three.count()/data.count() * 100
-
-    survived_female_class_one = data[(data["Pclass"] == 1) & (data["Survived"] == 1) & (data["Sex"] == 'female')]
-    survived_female_class_one_percent = survived_female_class_one.count()/data.count() * 100
-
-    survived_female_class_two = data[(data["Pclass"] == 2) & (data["Survived"] == 1) & (data["Sex"] == 'female')]
-    survived_female_class_two_percent = survived_female_class_two.count()/data.count() * 100
-  
-    survived_female_class_three = data[(data["Pclass"] == 3) & (data["Survived"] == 1) & (data["Sex"] == 'female')]
-    survived_female_class_three_percent = survived_female_class_three.count()/data.count() * 100
+    survived_male_class_one_percent = survival_rate_by_class_and_gender(data, 1, "male", survived)
+    survived_male_class_two_percent = survival_rate_by_class_and_gender(data, 2, "male", survived)
+    survived_male_class_three_percent = survival_rate_by_class_and_gender(data, 3, "male", survived)
+    survived_female_class_one_percent = survival_rate_by_class_and_gender(data, 1, "female", survived)
+    survived_female_class_two_percent = survival_rate_by_class_and_gender(data, 2, "female", survived)
+    survived_female_class_three_percent = survival_rate_by_class_and_gender(data, 3, "female", survived)
 
     data = [("survived_children", round(survived_children_percent, 2)),
             ("survived_adults", round(survived_adults_percent, 2)),
