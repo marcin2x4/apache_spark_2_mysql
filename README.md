@@ -12,7 +12,7 @@ SQL `CREATE` statement is embedded in `prep_table()` method.
 
 # Run Spark job
 Below code will submit the job. Run once logged in into the master node (`docker exec -it apache_spark_2_mysql-spark-master-1 bash`)
-Simultaneously, open MySQL instance for querying data (`docker exec -it apache_spark_2_mysql-demo-database-1 bash`)
+Simultaneously, open MySQL instance for querying data (`docker exec -it apache_spark_2_mysql-demo-database-1 bash` / `mysql -uiamuser -piampass`)
 
 `/opt/spark/bin/spark-submit --master spark://spark-master:7077 \
 --jars /opt/spark-apps/mysql-connector-java-8.0.28.jar \
